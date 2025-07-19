@@ -1,37 +1,44 @@
 # controller.py
+
 from emergency_detector import detect_emergency_vehicle
-from vehicle_counter import count_vehicles
+from vehicle_counter import count_vehicles_all_directions
+from vehicle_timer import calculate_signal_time
 
 def decide_traffic_signal(videos):
-    durations = {}
-    emergency_detected = {}
+    print("\n🧠 Running Traffic Signal Decision Logic...")
 
-    # Step 1: Check for emergency vehicle and count traffic for each direction
-    for direction, path in videos.items():
-        emergency_detected[direction] = detect_emergency_vehicle(path)
-        durations[direction] = count_vehicles(path)
+    # Step 1: Get vehicle counts and emergency status for all directions
+    vehicle_counts = count_vehicles_all_directions(videos)
+    emergency_status = {dir: detect_emergency_vehicle(path) for dir, path in videos.items()}
 
-    print("\n🧠 Traffic Decision Logic Running...")
-    
-    # Step 2: Emergency priority
-    for direction, detected in emergency_detected.items():
-        if detected:
-            print(f"\n🚨 Emergency vehicle detected in {direction} direction.")
-            return direction, durations[direction] + 15  # +15 sec priority
+    signal_plan = {}
 
-    # Step 3: Choose direction with max traffic
-    selected_direction = max(durations, key=durations.get)
-    base_duration = durations[selected_direction]
+    # Step 2: Compute base time for each direction
+    for direction in ['north', 'east', 'south', 'west']:
+        counts = vehicle_counts.get(direction, {})
+        base_time = calculate_signal_time(counts)
 
-    # Adjust duration based on traffic
-    if base_duration >= 15:
-        signal_time = 60
-    elif base_duration >= 10:
-        signal_time = 45
-    elif base_duration >= 5:
-        signal_time = 30
-    else:
-        signal_time = 15
+        if emergency_status.get(direction):
+            base_time += 15
+            print(f"🚨 Emergency vehicle detected in {direction.upper()}! Giving extra priority.")
 
-    print(f"\n🚦 Opening signal for {selected_direction} ({base_duration} vehicles) for {signal_time} seconds.")
-    return selected_direction, signal_time
+        signal_plan[direction] = base_time
+
+    # Step 3: Sort directions clockwise starting from emergency or max traffic
+    clockwise_order = ['north', 'east', 'south', 'west']
+
+    # Prioritize emergency direction
+    start_dir = next((d for d in clockwise_order if emergency_status.get(d)), None)
+
+    if not start_dir:
+        # Else pick the one with max time
+        start_dir = max(signal_plan, key=signal_plan.get)
+
+    start_idx = clockwise_order.index(start_dir)
+    ordered_dirs = clockwise_order[start_idx:] + clockwise_order[:start_idx]
+
+    print("\n🛑 Final Signal Timings:")
+    for dir in ordered_dirs:
+        print(f"➡ {dir.upper()}: {signal_plan[dir]} seconds")
+
+    return signal_plan  # full plan for all 4 directions

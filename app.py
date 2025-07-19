@@ -1,12 +1,16 @@
 # app.py
+
 from controller import decide_traffic_signal
 
 videos = {
-    "north": "c:/Users/acer/OneDrive/Desktop/Trafficesystem/Trafficesystem/videos/north.mp4",
-    "south": "c:/Users/acer/OneDrive/Desktop/Trafficesystem/Trafficesystem/videos/south.mp4",
-    "east": "c:/Users/acer/OneDrive/Desktop/Trafficesystem/Trafficesystem/videos/east.mp4",
-    "west": "c:/Users/acer/OneDrive/Desktop/Trafficesystem/Trafficesystem/videos/west.mp4"
+    "north": "videos/north.mp4",
+    "south": "videos/south.mp4",
+    "east": "videos/east.mp4",
+    "west": "videos/west.mp4"
 }
 
-direction, time_sec = decide_traffic_signal(videos)
-print(f"\n✅ Signal opened for {direction.upper()} direction for {time_sec} seconds.")
+signal_plan = decide_traffic_signal(videos)
+
+print("\n✅ Traffic light schedule:")
+for direction, seconds in signal_plan.items():
+    print(f"Open signal for {direction.upper()} direction for {seconds} seconds.")
